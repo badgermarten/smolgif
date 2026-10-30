@@ -11,7 +11,8 @@ Each GIF is saved next to the original as `name-Opt.gif`. Several files are proc
 The first time, Windows SmartScreen may say it doesn't recognize the app: click **More info → Run anyway**.
 
 **Mac:** download [smolgif-mac.dmg](../../releases/latest/download/smolgif-mac.dmg), open it, and drag
-**smolgif** into Applications. The app is signed and notarized by Apple.
+**smolgif** into Applications. The app is signed and notarized by Apple. Requires an Apple Silicon Mac
+(M1 or newer) running macOS 11+; Intel Macs aren't supported.
 
 **From source:** with [Python 3](https://www.python.org/downloads/) installed, double-click `smolgif.pyw` on Windows
 or run `python3 smolgif.py`.
@@ -43,7 +44,7 @@ so no new app release is needed.
 Two GitHub Actions workflows do the Mac work:
 
 - **Gifsicle for macOS** (`.github/workflows/gifsicle-mac.yml`) runs on the 1st of every month. If lcdf.org has a
-  version that has not been built yet, it builds a universal binary, signs and notarizes it, and publishes a
+  version that has not been built yet, it builds an Apple Silicon binary, signs and notarizes it, and publishes a
   `gifsicle-X.Y` release with the source tarball attached. Mac users get it through the in-app update check.
 - **Release** (`.github/workflows/release.yml`) builds `smolgif.exe` and the signed, notarized Mac app and DMG.
   Push a tag such as `v1.0.1` to publish both on the Releases page, or run it manually to get build artifacts.

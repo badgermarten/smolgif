@@ -1,4 +1,4 @@
-# Monthly: if lcdf.org has a Gifsicle version we haven't built yet, build a universal macOS binary,
+# Monthly: if lcdf.org has a Gifsicle version we haven't built yet, build an Apple Silicon macOS binary,
 # sign + notarize it, and publish it as a "gifsicle-X.Y" release. The Mac app's update check downloads from there.
 name: Gifsicle for macOS
 
@@ -41,7 +41,7 @@ jobs:
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build universal binary
+      - name: Build Apple Silicon binary
         if: steps.version.outputs.exists != 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -51,7 +51,7 @@ jobs:
           tar xzf "gifsicle-$VERSION.tar.gz"
           cd "gifsicle-$VERSION"
           ./configure --disable-gifview --disable-gifdiff --disable-dependency-tracking \
-            CFLAGS="-O2 -arch arm64 -arch x86_64 -mmacosx-version-min=11.0"
+            CFLAGS="-O2 -arch arm64 -mmacosx-version-min=11.0"
           make -j"$(sysctl -n hw.ncpu)"
           lipo -info src/gifsicle
           ./src/gifsicle --version | head -1 | grep -q "$VERSION"
@@ -84,7 +84,7 @@ jobs:
           # Ship the exact source alongside the binary, as the GPL asks
           gh release create "gifsicle-$VERSION" "out/$name.zip" "out/$name.zip.sha256" "gifsicle-$VERSION.tar.gz" \
             --title "Gifsicle $VERSION for macOS" --latest=false \
-            --notes "Universal (Apple Silicon + Intel) Gifsicle $VERSION built from https://www.lcdf.org/gifsicle/, signed and notarized. smolgif on macOS offers this update automatically. Source code: gifsicle-$VERSION.tar.gz (GPL-2.0)."
+            --notes "Apple Silicon Gifsicle $VERSION built from https://www.lcdf.org/gifsicle/, signed and notarized. smolgif on macOS offers this update automatically. Source code: gifsicle-$VERSION.tar.gz (GPL-2.0)."
 
       # GitHub disables scheduled workflows after 60 days without repo activity; re-enabling resets that timer
       - name: Keep monthly schedule alive

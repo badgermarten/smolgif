@@ -1,4 +1,4 @@
-# PyInstaller spec for the universal (Apple Silicon + Intel) macOS app, trimmed for size.
+# PyInstaller spec for the Apple Silicon macOS app (Intel Macs aren't supported), trimmed for size.
 # Build from the repo root: python -m PyInstaller packaging/smolgif-mac.spec
 # Env: GIFSICLE_BIN_DIR (folder holding the signed gifsicle + COPYING), BUNDLE_ID, APP_VERSION
 import os
@@ -46,7 +46,7 @@ exe = EXE(
     exclude_binaries=True,
     name="smolgif",
     console=False,
-    target_arch="universal2",
+    target_arch="arm64",
     upx=False,
 )
 
@@ -57,5 +57,5 @@ app = BUNDLE(
     name="smolgif.app",
     bundle_identifier=os.environ.get("BUNDLE_ID"),
     version=os.environ.get("APP_VERSION", "0.0.0"),
-    info_plist={"NSHighResolutionCapable": True},
+    info_plist={"NSHighResolutionCapable": True, "LSMinimumSystemVersion": "11.0"},
 )

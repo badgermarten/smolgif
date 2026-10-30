@@ -63,9 +63,14 @@ jobs:
           ditto -x -k build/*-macos.zip build/gifsicle
           mkdir -p build/bin
           cp "$(find build/gifsicle -name gifsicle -type f)" "$(find build/gifsicle -name COPYING -type f)" build/bin/
+          # Older gifsicle releases were universal; keep only the Apple Silicon slice (the app is re-signed below)
+          if lipo -archs build/bin/gifsicle | grep -q x86_64; then
+            lipo build/bin/gifsicle -thin arm64 -output build/bin/gifsicle-arm64
+            mv build/bin/gifsicle-arm64 build/bin/gifsicle
+          fi
 
-      # python.org's installer is universal2, which lets PyInstaller build one app for Apple Silicon and Intel
-      - name: Install universal2 Python
+      # python.org's installer ships Tcl/Tk; the spec keeps only its Apple Silicon code (target_arch arm64)
+      - name: Install Python
         run: |
           set -euo pipefail
           curl -fsSLO "https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION-macos11.pkg"
