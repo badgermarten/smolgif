@@ -13,9 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.request
 import zipfile
-import hashlib
 
 GITHUB_REPO = "badgermarten/smolgif"
 # Apple Developer Team ID that signs the macOS gifsicle builds; filled in by the DMG workflow
@@ -98,6 +96,16 @@ def mark_checked():
 
 
 def _download(url):
+    if IS_WINDOWS:
+        # Windows 10+ ships curl.exe (using the system's TLS), so the .exe doesn't need to bundle OpenSSL
+        curl = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "curl.exe")
+        result = subprocess.run([curl, "-fsSL", "--max-time", "60", "-A", "smolgif-updater", url],
+                                capture_output=True, creationflags=NO_WINDOW)
+        if result.returncode != 0:
+            raise RuntimeError(f"Download failed: {result.stderr.decode('utf-8', 'replace').strip()}")
+        return result.stdout
+
+    import urllib.request
     request = urllib.request.Request(url, headers={"User-Agent": "smolgif-updater"})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read()
@@ -166,6 +174,7 @@ def install(version, url):
         archive = os.path.join(tmp, "download.zip")
         data = _download(url)
         if IS_MAC:
+            import hashlib
             expected = _download(url + ".sha256").decode().split()[0].lower()
             if hashlib.sha256(data).hexdigest() != expected:
                 raise RuntimeError("Download checksum mismatch")
