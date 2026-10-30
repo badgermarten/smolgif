@@ -11,7 +11,7 @@ Each GIF is saved next to the original as `name-Opt.gif`. Several files are proc
 **smolgif** into Applications. The app is signed and notarized by Apple.
 
 **Windows:** install [Python 3](https://www.python.org/downloads/) (tick *tcl/tk* during install, which is on by default),
-download this repository, and double-click `smolgif.bat`. Gifsicle for Windows is included in `gifsicle/`.
+download this repository, and double-click `smolgif.pyw` (no console window). Gifsicle for Windows is included in `gifsicle/`.
 
 ## Settings
 

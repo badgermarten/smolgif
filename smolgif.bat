@@ -1,3 +1,2 @@
 @echo off
-python smolgif.py
-pause
+start "" pythonw "%~dp0smolgif.py"
