@@ -7,11 +7,14 @@ Each GIF is saved next to the original as `name-Opt.gif`. Several files are proc
 
 ## Install
 
-**Mac:** download the latest `smolgif-*.dmg` from [Releases](../../releases), open it, and drag
+**Windows:** download [smolgif.exe](../../releases/latest/download/smolgif.exe) and double-click it. Nothing to install.
+The first time, Windows SmartScreen may say it doesn't recognize the app: click **More info → Run anyway**.
+
+**Mac:** download [smolgif-mac.dmg](../../releases/latest/download/smolgif-mac.dmg), open it, and drag
 **smolgif** into Applications. The app is signed and notarized by Apple.
 
-**Windows:** install [Python 3](https://www.python.org/downloads/) (tick *tcl/tk* during install, which is on by default),
-download this repository, and double-click `smolgif.pyw` (no console window). Gifsicle for Windows is included in `gifsicle/`.
+**From source:** with [Python 3](https://www.python.org/downloads/) installed, double-click `smolgif.pyw` on Windows
+or run `python3 smolgif.py`.
 
 ## Settings
 
@@ -42,8 +45,8 @@ Two GitHub Actions workflows do the Mac work:
 - **Gifsicle for macOS** (`.github/workflows/gifsicle-mac.yml`) runs on the 1st of every month. If lcdf.org has a
   version that has not been built yet, it builds a universal binary, signs and notarizes it, and publishes a
   `gifsicle-X.Y` release with the source tarball attached. Mac users get it through the in-app update check.
-- **Mac DMG** (`.github/workflows/mac-dmg.yml`) builds the signed, notarized app and DMG. Push a tag such as
-  `v1.0.0` to publish a release, or run it manually to get the DMG as a build artifact.
+- **Release** (`.github/workflows/release.yml`) builds `smolgif.exe` and the signed, notarized Mac app and DMG.
+  Push a tag such as `v1.0.1` to publish both on the Releases page, or run it manually to get build artifacts.
   It needs at least one `gifsicle-X.Y` release to exist, so run *Gifsicle for macOS* once first.
 
 Both need these repository secrets (Settings → Secrets and variables → Actions):

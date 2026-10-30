@@ -1,6 +1,6 @@
-# Builds the signed + notarized "smolgif" Mac app and DMG.
-# Push a tag like v1.0.0 to publish a release; run it manually to just get the DMG as a build artifact.
-name: Mac DMG
+# Builds smolgif.exe (Windows) and the signed + notarized smolgif Mac app (DMG).
+# Push a tag like v1.0.0 to publish both on the Releases page; run it manually to just get build artifacts.
+name: Release
 
 on:
   push:
@@ -15,7 +15,29 @@ env:
   PYTHON_MINOR: "3.13"
 
 jobs:
-  dmg:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build smolgif.exe
+        run: |
+          python -m pip install "pyinstaller>=6.10,<7"
+          python -m PyInstaller --noconfirm --onefile --windowed --name smolgif `
+            --add-data "gifsicle/gifsicle.exe;gifsicle" `
+            --add-data "gifsicle/doc/COPYING;gifsicle" `
+            smolgif.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/smolgif.exe
+
+  mac:
     runs-on: macos-15
     env:
       GH_TOKEN: ${{ github.token }}
@@ -84,8 +106,7 @@ jobs:
             --entitlements packaging/entitlements.plist --sign "$SIGN_IDENTITY" "$app"
           codesign --verify --deep --strict --verbose=2 "$app"
 
-          label="${GITHUB_REF_NAME//\//-}"
-          dmg="smolgif-$label.dmg"
+          dmg="smolgif-mac.dmg"
           mkdir dmg
           cp -R "$app" dmg/
           ln -s /Applications dmg/Applications
@@ -95,13 +116,27 @@ jobs:
             --team-id "$APPLE_TEAM_ID" --wait
           xcrun stapler staple "$dmg"
           spctl --assess --type open --context context:primary-signature --verbose "$dmg"
-          echo "DMG=$dmg" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mac-dmg
-          path: ${{ env.DMG }}
+          name: mac
+          path: smolgif-mac.dmg
 
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      # Fixed asset names keep the README's releases/latest/download links working for every version
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "smolgif $GITHUB_REF_NAME" --generate-notes
+        run: |
+          gh release create "$GITHUB_REF_NAME" assets/smolgif.exe assets/smolgif-mac.dmg \
+            --repo "$GITHUB_REPOSITORY" --title "smolgif $GITHUB_REF_NAME" --latest \
+            --notes "**Windows:** download \`smolgif.exe\` and double-click it. **Mac:** download \`smolgif-mac.dmg\`, open it, and drag smolgif into Applications."
