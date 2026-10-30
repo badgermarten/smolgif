@@ -1,4 +1,4 @@
-# Builds the signed + notarized "Larry Gifsicle" Mac app and DMG.
+# Builds the signed + notarized "smolgif" Mac app and DMG.
 # Push a tag like v1.0.0 to publish a release; run it manually to just get the DMG as a build artifact.
 name: Mac DMG
 
@@ -58,13 +58,13 @@ jobs:
         run: |
           set -euo pipefail
           owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
-          "$PY" -m PyInstaller --noconfirm --windowed --name "Larry Gifsicle" \
+          "$PY" -m PyInstaller --noconfirm --windowed --name "smolgif" \
             --target-arch universal2 \
-            --osx-bundle-identifier "io.github.$owner.larry-gifsicle" \
+            --osx-bundle-identifier "io.github.$owner.smolgif" \
             --add-binary "build/bin/gifsicle:bin" \
             --add-data "build/bin/COPYING:bin" \
-            gifsicle-gui.py
-          "dist/Larry Gifsicle.app/Contents/Frameworks/bin/gifsicle" --version | head -1
+            smolgif.py
+          "dist/smolgif.app/Contents/Frameworks/bin/gifsicle" --version | head -1
 
       - name: Import signing certificate
         uses: ./.github/actions/import-signing-cert
@@ -79,17 +79,17 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          app="dist/Larry Gifsicle.app"
+          app="dist/smolgif.app"
           codesign --force --deep --options runtime --timestamp \
             --entitlements packaging/entitlements.plist --sign "$SIGN_IDENTITY" "$app"
           codesign --verify --deep --strict --verbose=2 "$app"
 
           label="${GITHUB_REF_NAME//\//-}"
-          dmg="Larry-Gifsicle-$label.dmg"
+          dmg="smolgif-$label.dmg"
           mkdir dmg
           cp -R "$app" dmg/
           ln -s /Applications dmg/Applications
-          hdiutil create -volname "Larry Gifsicle" -srcfolder dmg -ov -format UDZO "$dmg"
+          hdiutil create -volname "smolgif" -srcfolder dmg -ov -format UDZO "$dmg"
           codesign --sign "$SIGN_IDENTITY" --timestamp "$dmg"
           xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" --wait
@@ -104,4 +104,4 @@ jobs:
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
-        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "Larry Gifsicle $GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "smolgif $GITHUB_REF_NAME" --generate-notes

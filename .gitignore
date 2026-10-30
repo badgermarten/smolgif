@@ -4,4 +4,4 @@ __pycache__/
 *.spec
 build/
 dist/
-Larry_Gifsicle_*_backup/
+*_backup/

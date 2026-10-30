@@ -17,7 +17,7 @@ import urllib.request
 import zipfile
 import hashlib
 
-GITHUB_REPO = "badgermarten/larry-gifsicle"
+GITHUB_REPO = "badgermarten/smolgif"
 # Apple Developer Team ID that signs the macOS gifsicle builds; filled in by the DMG workflow
 MAC_TEAM_ID = ""
 WINDOWS_SIGNER = "Jernej Simončič"
@@ -41,7 +41,7 @@ def data_dir():
         base = os.path.expanduser("~/Library/Application Support")
     else:
         base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    return os.path.join(base, "LarryGifsicle")
+    return os.path.join(base, "smolgif")
 
 
 def parse_version(text):
@@ -64,7 +64,7 @@ def binary_version(path):
 
 def find_gifsicle():
     """Returns (path, version) of the newest working gifsicle, or (None, (0, 0))."""
-    candidates = [os.path.join(app_dir(), "Larry_Gifsicle", EXE), os.path.join(app_dir(), "bin", EXE)]
+    candidates = [os.path.join(app_dir(), "gifsicle", EXE), os.path.join(app_dir(), "bin", EXE)]
     updates_dir = os.path.join(data_dir(), "gifsicle")
     if os.path.isdir(updates_dir):
         candidates += [os.path.join(updates_dir, name, EXE) for name in os.listdir(updates_dir)]
@@ -98,7 +98,7 @@ def mark_checked():
 
 
 def _download(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "LarryGifsicle-updater"})
+    request = urllib.request.Request(url, headers={"User-Agent": "smolgif-updater"})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read()
 

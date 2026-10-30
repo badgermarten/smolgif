@@ -1,4 +1,4 @@
-# Larry Gifsicle
+# smolgif
 
 A small desktop app for batch-compressing animated GIFs with [Gifsicle](https://www.lcdf.org/gifsicle/).
 By default it uses the same settings as [ezgif.com's optimizer](https://ezgif.com/optimize): `-O3 --lossy=30 --gamma=1`.
@@ -7,11 +7,11 @@ Each GIF is saved next to the original as `name-Opt.gif`. Several files are proc
 
 ## Install
 
-**Mac:** download the latest `Larry-Gifsicle-*.dmg` from [Releases](../../releases), open it, and drag
-**Larry Gifsicle** into Applications. The app is signed and notarized by Apple.
+**Mac:** download the latest `smolgif-*.dmg` from [Releases](../../releases), open it, and drag
+**smolgif** into Applications. The app is signed and notarized by Apple.
 
 **Windows:** install [Python 3](https://www.python.org/downloads/) (tick *tcl/tk* during install, which is on by default),
-download this repository, and double-click `gifsicle.bat`. Gifsicle for Windows is included in `Larry_Gifsicle/`.
+download this repository, and double-click `smolgif.bat`. Gifsicle for Windows is included in `gifsicle/`.
 
 ## Settings
 
@@ -32,7 +32,7 @@ Once a month the app checks for a newer Gifsicle and asks before installing it. 
 - **Mac** downloads from this repo's `gifsicle-X.Y` releases and only accepts it if the checksum matches
   and it is signed with our Apple Team ID.
 
-Updates are installed per user (`%LOCALAPPDATA%\LarryGifsicle` or `~/Library/Application Support/LarryGifsicle`),
+Updates are installed per user (`%LOCALAPPDATA%\smolgif` or `~/Library/Application Support/smolgif`),
 so no new app release is needed.
 
 ## How the Mac builds work (maintainers)
@@ -58,6 +58,6 @@ Both need these repository secrets (Settings → Secrets and variables → Actio
 
 ## Licenses
 
-Gifsicle is © Eddie Kohler and distributed under the GNU GPL v2; see `Larry_Gifsicle/doc/COPYING`.
+Gifsicle is © Eddie Kohler and distributed under the GNU GPL v2; see `gifsicle/doc/COPYING`.
 Its source code is at <https://www.lcdf.org/gifsicle/>, and each `gifsicle-X.Y` release here includes the exact
 source tarball it was built from. The Windows binaries are by Jernej Simončič (eternallybored.org).

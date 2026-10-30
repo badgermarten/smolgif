@@ -84,7 +84,7 @@ jobs:
           # Ship the exact source alongside the binary, as the GPL asks
           gh release create "gifsicle-$VERSION" "out/$name.zip" "out/$name.zip.sha256" "gifsicle-$VERSION.tar.gz" \
             --title "Gifsicle $VERSION for macOS" --latest=false \
-            --notes "Universal (Apple Silicon + Intel) Gifsicle $VERSION built from https://www.lcdf.org/gifsicle/, signed and notarized. Larry Gifsicle on macOS offers this update automatically. Source code: gifsicle-$VERSION.tar.gz (GPL-2.0)."
+            --notes "Universal (Apple Silicon + Intel) Gifsicle $VERSION built from https://www.lcdf.org/gifsicle/, signed and notarized. smolgif on macOS offers this update automatically. Source code: gifsicle-$VERSION.tar.gz (GPL-2.0)."
 
       # GitHub disables scheduled workflows after 60 days without repo activity; re-enabling resets that timer
       - name: Keep monthly schedule alive

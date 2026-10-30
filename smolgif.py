@@ -13,7 +13,7 @@ import gifsicle_updater as updater
 class GifsicleGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Larry's Gifsicle Optimizer")
+        self.root.title("smolgif")
         self.root.geometry("1000x600")
 
         self.gifsicle_path, self.gifsicle_version = updater.find_gifsicle()
@@ -132,7 +132,7 @@ class GifsicleGUI:
         if not self.gifsicle_path:
             messagebox.showwarning("Warning",
                 "Gifsicle wasn't found.\n\n"
-                "Click \"Check for Gifsicle Updates\" to download it, or put it in the Larry_Gifsicle folder.")
+                "Click \"Check for Gifsicle Updates\" to download it, or put it in the gifsicle folder.")
             self.check_for_updates(manual=True)
         elif updater.check_due():
             self.check_for_updates(manual=False)
