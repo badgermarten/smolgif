@@ -1,0 +1,107 @@
+# Builds the signed + notarized "Larry Gifsicle" Mac app and DMG.
+# Push a tag like v1.0.0 to publish a release; run it manually to just get the DMG as a build artifact.
+name: Mac DMG
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: "3.13.7"
+  PYTHON_MINOR: "3.13"
+
+jobs:
+  dmg:
+    runs-on: macos-15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch newest signed Gifsicle build
+        run: |
+          set -euo pipefail
+          tag="$(gh release list --limit 100 --json tagName --jq \
+            '[.[].tagName | select(startswith("gifsicle-"))] | sort_by(ltrimstr("gifsicle-") | split(".") | map(tonumber)) | last // empty')"
+          if [ -z "$tag" ]; then
+            echo "::error::No gifsicle-* release yet. Run the 'Gifsicle for macOS' workflow first."
+            exit 1
+          fi
+          gh release download "$tag" --pattern '*-macos.zip' --dir build
+          ditto -x -k build/*-macos.zip build/gifsicle
+          mkdir -p build/bin
+          cp "$(find build/gifsicle -name gifsicle -type f)" "$(find build/gifsicle -name COPYING -type f)" build/bin/
+
+      # python.org's installer is universal2, which lets PyInstaller build one app for Apple Silicon and Intel
+      - name: Install universal2 Python
+        run: |
+          set -euo pipefail
+          curl -fsSLO "https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION-macos11.pkg"
+          sudo installer -pkg "python-$PYTHON_VERSION-macos11.pkg" -target /
+          py="/Library/Frameworks/Python.framework/Versions/$PYTHON_MINOR/bin/python3"
+          "$py" -m pip install "pyinstaller>=6.10,<7"
+          echo "PY=$py" >> "$GITHUB_ENV"
+
+      - name: Configure updater for this repo
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          sed -i '' -E "s|^GITHUB_REPO = \".*\"|GITHUB_REPO = \"$GITHUB_REPOSITORY\"|" gifsicle_updater.py
+          sed -i '' -E "s|^MAC_TEAM_ID = \".*\"|MAC_TEAM_ID = \"$APPLE_TEAM_ID\"|" gifsicle_updater.py
+          grep -E '^(GITHUB_REPO|MAC_TEAM_ID) =' gifsicle_updater.py
+
+      - name: Build app
+        run: |
+          set -euo pipefail
+          owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          "$PY" -m PyInstaller --noconfirm --windowed --name "Larry Gifsicle" \
+            --target-arch universal2 \
+            --osx-bundle-identifier "io.github.$owner.larry-gifsicle" \
+            --add-binary "build/bin/gifsicle:bin" \
+            --add-data "build/bin/COPYING:bin" \
+            gifsicle-gui.py
+          "dist/Larry Gifsicle.app/Contents/Frameworks/bin/gifsicle" --version | head -1
+
+      - name: Import signing certificate
+        uses: ./.github/actions/import-signing-cert
+        with:
+          certificate: ${{ secrets.MACOS_CERTIFICATE }}
+          password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Sign, notarize and package DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          app="dist/Larry Gifsicle.app"
+          codesign --force --deep --options runtime --timestamp \
+            --entitlements packaging/entitlements.plist --sign "$SIGN_IDENTITY" "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+          label="${GITHUB_REF_NAME//\//-}"
+          dmg="Larry-Gifsicle-$label.dmg"
+          mkdir dmg
+          cp -R "$app" dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Larry Gifsicle" -srcfolder dmg -ov -format UDZO "$dmg"
+          codesign --sign "$SIGN_IDENTITY" --timestamp "$dmg"
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$dmg"
+          spctl --assess --type open --context context:primary-signature --verbose "$dmg"
+          echo "DMG=$dmg" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: ${{ env.DMG }}
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: gh release create "$GITHUB_REF_NAME" "$DMG" --title "Larry Gifsicle $GITHUB_REF_NAME" --generate-notes

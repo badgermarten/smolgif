@@ -1,0 +1,92 @@
+# Monthly: if lcdf.org has a Gifsicle version we haven't built yet, build a universal macOS binary,
+# sign + notarize it, and publish it as a "gifsicle-X.Y" release. The Mac app's update check downloads from there.
+name: Gifsicle for macOS
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"  # 09:00 UTC on the 1st of every month
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Gifsicle version to build (blank = newest on lcdf.org)
+        required: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find newest Gifsicle version
+        id: version
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="$REQUESTED"
+          if [ -z "$version" ]; then
+            version="$(curl -fsSL https://www.lcdf.org/gifsicle/ \
+              | grep -oE 'gifsicle-[0-9]+\.[0-9]+\.tar\.gz' | sed -E 's/^gifsicle-(.*)\.tar\.gz$/\1/' | sort -V | tail -1)"
+          fi
+          echo "Newest Gifsicle: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "gifsicle-$version" > /dev/null 2>&1; then
+            echo "gifsicle-$version is already published; nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build universal binary
+        if: steps.version.outputs.exists != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          curl -fsSLO "https://www.lcdf.org/gifsicle/gifsicle-$VERSION.tar.gz"
+          tar xzf "gifsicle-$VERSION.tar.gz"
+          cd "gifsicle-$VERSION"
+          ./configure --disable-gifview --disable-gifdiff --disable-dependency-tracking \
+            CFLAGS="-O2 -arch arm64 -arch x86_64 -mmacosx-version-min=11.0"
+          make -j"$(sysctl -n hw.ncpu)"
+          lipo -info src/gifsicle
+          ./src/gifsicle --version | head -1 | grep -q "$VERSION"
+
+      - name: Import signing certificate
+        if: steps.version.outputs.exists != 'true'
+        uses: ./.github/actions/import-signing-cert
+        with:
+          certificate: ${{ secrets.MACOS_CERTIFICATE }}
+          password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Sign, notarize and publish
+        if: steps.version.outputs.exists != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          name="gifsicle-$VERSION-macos"
+          mkdir -p "out/$name"
+          cp "gifsicle-$VERSION/src/gifsicle" "gifsicle-$VERSION/COPYING" "out/$name/"
+          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "out/$name/gifsicle"
+          codesign --verify --strict --verbose=2 "out/$name/gifsicle"
+          (cd out && ditto -c -k --keepParent "$name" "$name.zip")
+          xcrun notarytool submit "out/$name.zip" --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait
+          shasum -a 256 "out/$name.zip" | awk '{print $1}' > "out/$name.zip.sha256"
+          # Ship the exact source alongside the binary, as the GPL asks
+          gh release create "gifsicle-$VERSION" "out/$name.zip" "out/$name.zip.sha256" "gifsicle-$VERSION.tar.gz" \
+            --title "Gifsicle $VERSION for macOS" --latest=false \
+            --notes "Universal (Apple Silicon + Intel) Gifsicle $VERSION built from https://www.lcdf.org/gifsicle/, signed and notarized. Larry Gifsicle on macOS offers this update automatically. Source code: gifsicle-$VERSION.tar.gz (GPL-2.0)."
+
+      # GitHub disables scheduled workflows after 60 days without repo activity; re-enabling resets that timer
+      - name: Keep monthly schedule alive
+        if: always()
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/gifsicle-mac.yml/enable"

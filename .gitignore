@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.part
+*.spec
+build/
+dist/
+Larry_Gifsicle_*_backup/
