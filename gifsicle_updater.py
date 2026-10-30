@@ -96,9 +96,12 @@ def mark_checked():
 
 
 def _download(url):
-    if IS_WINDOWS:
-        # Windows 10+ ships curl.exe (using the system's TLS), so the .exe doesn't need to bundle OpenSSL
-        curl = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "curl.exe")
+    if IS_WINDOWS or IS_MAC:
+        # Windows 10+ and macOS ship curl (using the system's TLS), so the app doesn't need to bundle OpenSSL
+        if IS_WINDOWS:
+            curl = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "curl.exe")
+        else:
+            curl = "/usr/bin/curl"
         result = subprocess.run([curl, "-fsSL", "--max-time", "60", "-A", "smolgif-updater", url],
                                 capture_output=True, creationflags=NO_WINDOW)
         if result.returncode != 0:

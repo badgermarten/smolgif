@@ -30,6 +30,14 @@ jobs:
           python -m PyInstaller --noconfirm packaging/smolgif-windows.spec
           "smolgif.exe: {0:N2} MB" -f ((Get-Item dist/smolgif.exe).Length / 1MB)
 
+      # Catches a module the trimmed spec excluded but the app still needs: the app must stay up for 10s
+      - name: Launch test
+        run: |
+          $app = Start-Process dist/smolgif.exe -PassThru
+          Start-Sleep 10
+          if ($app.HasExited) { Write-Error "smolgif.exe exited during startup (code $($app.ExitCode))"; exit 1 }
+          Get-Process smolgif | Stop-Process -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -78,13 +86,20 @@ jobs:
         run: |
           set -euo pipefail
           owner="$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
-          "$PY" -m PyInstaller --noconfirm --windowed --name "smolgif" \
-            --target-arch universal2 \
-            --osx-bundle-identifier "io.github.$owner.smolgif" \
-            --add-binary "build/bin/gifsicle:bin" \
-            --add-data "build/bin/COPYING:bin" \
-            smolgif.py
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]] || version="0.0.0"
+          GIFSICLE_BIN_DIR="$PWD/build/bin" BUNDLE_ID="io.github.$owner.smolgif" APP_VERSION="$version" \
+            "$PY" -m PyInstaller --noconfirm packaging/smolgif-mac.spec
           "dist/smolgif.app/Contents/Frameworks/bin/gifsicle" --version | head -1
+          du -sh dist/smolgif.app
+
+      # Catches a module the trimmed spec excluded but the app still needs: the app must stay up for 10s
+      - name: Launch test
+        run: |
+          "dist/smolgif.app/Contents/MacOS/smolgif" & pid=$!
+          sleep 10
+          kill -0 "$pid" || { echo "::error::smolgif exited during startup"; exit 1; }
+          kill "$pid"
 
       - name: Import signing certificate
         uses: ./.github/actions/import-signing-cert
